@@ -1,0 +1,591 @@
+
+SQL script to execute a function :
+
+SELECT {function} FROM DUAL;
+
+
+Script to display existing functions along with its source code :
+     
+SELECT * FROM ALL_SOURCE
+WHERE OWNER = '...'
+AND TYPE = 'FUNCTION'
+ORDER BY NAME, LINE;
+
+Script to display those that can be used to determine whether or not a PIDM exists within a table :
+  
+SELECT * FROM ALL_SOURCE
+WHERE OWNER = 'BANINST1'
+AND TYPE = 'FUNCTION'
+AND NAME LIKE '%_IND'
+ORDER BY NAME, LINE;
+
+Script to display those that can be used to return a concatenated value (record fields delimited by a '{' character); use "F_SPLIT_FIELDS" function to parse string (explained later in document) :
+   
+SELECT * FROM ALL_SOURCE
+WHERE OWNER = 'BANINST1'
+AND TYPE = 'FUNCTION'
+AND NAME LIKE '%_CONCAT%'
+ORDER BY NAME, LINE;
+
+SELECT *
+FROM ALL_SOURCE
+WHERE OWNER = ÔBANINST1Õ
+AND TYPE = 'FUNCTION'
+ORDER BY NAME, LINE;
+
+SELECT DISTINCT(name)
+FROM ALL_SOURCE
+AND TYPE = 'FUNCTION'
+AND NAME LIKE Ô%EMA%Õ
+ORDER BY NAME;
+
+SELECT *
+FROM ALL_SOURCE
+WHERE TYPE = 'FUNCTION'
+AND NAME LIKE '%EMA%'
+ORDER BY NAME, LINE
+
+
+Displaying A Person's Name :
+
+F_FORMAT_NAME({pidm},(format))
+
+F_FORMAT_NAME({pidm},(Format - 'LFMI','FML','FMIL','L30',etc))
+
+F_GET_ORDERBY_FIRST_NAME({pidm})
+
+F_GET_ORDERBY_LAST_NAME({pidm})
+
+F_ORDER_BY_LAST({pidm}) -> concatenates full name with no spaces (ThompsonJayM)
+
+F_FACT_NAME({pidm}) -> retrieves {last name}, {first name} {middle name}
+ 
+F_SUPERVISOR_INFO({pidm},(which field))
+
+
+Displaying A Person's Banner ID :
+
+F_GETSPRIDENID({pidm}) or GB_COMMON.F_GET_ID({pidm})
+
+For an invalid PIDM, "F_GETSPRIDENID" returns a NULL value and "GB_COMMON.F_GET_ID" displays an error message.
+
+Also, these 2 only retrieve the "current" ID (or where the "change indicator" on SPRIDEN is NULL).
+
+
+Verifying Existence Of A Banner ID :
+
+GB_COMMON.F_ID_EXISTS({ID}) : works for any ID (including Alternate IDs)
+
+GB_COMMON.F_CURRENT_ID_EXISTS({ID}) : works for a "current" ID (or where the "change indicator" on SPRIDEN is NULL)
+
+
+Return the next available Banner ID :
+
+{field} := GB_COMMON.F_GENERATE_ID;
+
+F_GENERATE_SOBSEQN('ID')
+
+SELECT ID_SEQUENCE.NEXTVAL FROM DUAL;
+
+
+Displaying A Person's Banner PIDM :
+
+GB_COMMON.F_GET_PIDM({ID}) : only returns a PIDM for a "current" ID (or where the "change indicator" on SPRIDEN is NULL); won't work with Alternate IDs
+
+GB_COMMON.F_PIDM_EXISTS({pidm}) : works for any PIDM (including one that is associated with an Alternate ID)
+
+F_ISPIDMINTABLE({schema.table},{pidm field},{pidm}) : used to verify if PIDM is within the input table.
+
+
+Return the next available Banner PIDM :
+
+{field} := GB_COMMON.F_GENERATE_PIDM;
+
+SELECT PIDM_SEQUENCE.NEXTVAL FROM DUAL;
+
+
+Displaying Code Descriptions :
+ 
+When NULL is used for "length" parameter, the entire description is displayed (no truncation).
+
+F_CODE_EXISTS({table name},{code}) : for tables that have a "{table name}_CODE" column, determines whether or not code exists within table
+
+
+Generic function for all modules : GOKODSF.F_GET_DESC
+ 
+GOKODSF.F_GET_DESC('201110','STVTERM') - Fall 2011
+ 
+GOKODSF.F_GET_DESC('201110','STVTERM','STVTERM_START_DATE') - 22-AUG-11
+ 
+GOKODSF.F_GET_DESC('Fall 2011','STVTERM','STVTERM_START_DATE',NULL,'STVTERM_DESC') - 22-AUG-11
+
+
+Student :
+
+F_STUDENT_GET_DESC({table name},{code},{length})
+
+F_GET_DESC_FNC({table name},{code},{length})
+
+F_COMMON_GET_DESC({table name},{code},{length}) - checks small number of tables
+
+
+First 2 functions return descriptions for a lot of the same tables, but there are some differences.
+
+F_STUDENT_GET_DESC('STVBLDG',{BLDG},NULL) : returns {BLDG} description
+
+F_GET_DESC_FNC('STVBLDG',{BLDG},NULL) : returns NULL
+
+ 
+Finance :
+
+F_GET_FINANCE_DESC({table name},{COA - H},{code to match with table},{length})
+ 
+To display description for individual tables :
+ 
+Display title for fund code (FTVFUND table) : F_FUND_TITLE({COA - H},{fund code},{as of date - default is current date})
+  
+Display title for account code (FTVACCT table) : F_ACCT_TITLE({COA - H},{account code},{as of date - default is current date})
+
+Display title for activity code (FTVACTV table) : F_ACTV_TITLE({COA - H},{activity code},{as of date - default is current date})
+
+Display title for account type (FTVATYP table) : F_ATYP_TITLE({COA - H},{account type})
+  
+Display title for ORG code (FTVORGN table) : F_GET_SPECIAL_FINANCE_DESC({ORG code},{effective date - SYSDATE}) OR F_ORGN_TITLE({COA - H},{ORG code},{as of date - default is current date})
+    
+Script to display employee’s name with their department :
+ 
+SELECT F_FORMAT_NAME(PEBEMPL_PIDM,'FML'),
+       F_GET_FINANCE_DESC('FTVORGN','H',PEBEMPL_ORGN_CODE_HOME,NULL),
+       F_GET_SPECIAL_FINANCE_DESC(PEBEMPL_ORGN_CODE_HOME,SYSDATE)
+FROM PEBEMPL
+WHERE PEBEMPL_EMPL_STATUS = 'A';
+ 
+ 
+F_GET_FINANCE_STATUS({table name},{COA - H},{code to check within table}) : displays status indicator of input code
+
+
+Payroll/HR : F_GET_DESC({table name},{code},{length})
+ 
+ 
+Financial Aid : F_FINAID_GET_DESC({table name},{code},{length})
+
+
+Registration Functions :
+
+Check if student registered for a term : F_REGISTERED_THIS_TERM({pidm},{term})
+
+
+F_ENROLLED_THIS_TERM : DO NOT USE; displays a Y if student had registered at any time during the term, but their registration was deleted within Banner.
+
+
+Display the number of hours that student is registered for an input term :
+ 
+F_CALC_REGISTRATION_HOURS({pidm},{term},'TOTAL','CREDIT')
+ 
+The "F_CALC_REGISTRATION_HOURS" function has other options.  These can be displayed within TOAD.  If you exclude the pidm value (putting NULL instead), it will calculate the total for the entire selected term.
+
+
+Registered for any term since HGTC has been on Banner (Fall 2006 - 200610) :
+  
+F_STUDENT_ENROLLMENT_IND({pidm}) : uses table SFBETRM
+  
+F_STUDENT_REGISTRATION_IND({pidm}) : uses table SFRSTCR
+
+
+Last term (curriculum, continuing education, training, etc) that student "completed" :
+ 
+F_LATEST_TERM_FNC({pidm})
+ 
+
+Displaying Data From SGASTDN Form :
+ 
+F_GET_SGBSTDN_ROWID : retrieves SGBSTDN record where the effective term is less than or equal to term parameter
+
+SELECT * FROM SGBSTDN WHERE SGBSTDN.ROWID (+) = F_GET_SGBSTDN_ROWID({pidm},{term});
+
+
+Retrieve specified field from SGBSTDN table : F_SGBSTDN_FIELDS({pidm},{term},'{field}')
+
+Determines (Y/N) if student has an entry on the SGASTDN form : F_STUDENT_GEN_STUDENTS_IND({pidm})
+
+
+SOKODSF.F_GET_END_SGBSTDN_TERM({pidm},{term}) : For the input (effective) term, displays the term that is PRIOR to the next effective term for the student (even if it is the same as the input term).  If there is none, then '999999' is returned.
+
+
+Display student's high school information from Banner form SOAHSCH :
+
+SOKLIBS.F_HIGHSCHOOL_VALUE({pidm},{'HS';'SB'},
+{HS - school code - 'SC',
+      graduation date - 'GD',
+      grade point average - 'GPA', etc;
+SB - street line 1 - 'S1',
+     city - 'C',
+     zip code - 'Z', etc},
+{application term; NULL},
+{application #; NULL},
+{attr ind; NULL})
+
+HS - retrieves information specific to student
+SB - retrieves information specific to school
+
+
+Retrieve information specific to student :
+
+F_GET_HSCH_CODE({pidm}) : displays high school code for student
+
+
+F_HIGH_SCHOOL_ROWID({pidm}) : retrieves SORHSCH record for student.  First, it tries to retrieve the high school that the student graduated from.  If there isn’t one, then it retrieves any high school that the student attended.
+
+SELECT * FROM SORHSCH WHERE SORHSCH.ROWID (+) = F_HIGH_SCHOOL_ROWID({pidm});
+
+
+F_HIGH_SCHOOL_FNC({pidm},NULL) : same as F_HIGH_SCHOOL_ROWID
+
+SELECT * FROM SORHSCH WHERE SORHSCH.ROWID (+) = F_HIGH_SCHOOL_FNC({pidm},NULL);
+
+
+Retrieve information specific to school :
+
+F_HIGH_SCHOOL_FNC({pidm},'DEMO') : displays address information on high school that student attended (but not the name); can also use F_GET_SOBSBGI_ROWID
+
+SELECT * FROM SOBSBGI WHERE SOBSBGI.ROWID (+) = F_HIGH_SCHOOL_FNC({pidm},'DEMO')
+
+
+Graduation Functions (Banner forms SHADGMQ & SHADEGR) :
+
+F_GET_SHRDGMR_ROWID({pidm},{level; 'CR'},{which occurance}) : retrieves SHRDGMR record for student.  The lower the "occurance" parameter, the higher the "SHRDGMR_SEQ_NO" value.  For example, an "occurance" value of 1 would retrieve the SHRDGMR record with the highest "SHRDGMR_SEQ_NO" value.
+ 
+SELECT * FROM SHRDGMR WHERE SHRDGMR.ROWID (+) = F_GET_SHRDGMR_ROWID({pidm},{level; 'CR'},{which occurance})
+
+
+Has student graduated :
+ 
+F_GRADUATED_FROM_INSTITUTION({pidm})
+ 
+
+Has student applied for graduation :
+
+F_APPLIED_FOR_DEGREE({pidm}) : will return "N" if student has already graduated
+
+
+Faculty / Instructor Functions :
+
+Does individual exists on Banner form SIAINST : F_STUDENT_FACULTY_IND({pidm})
+ 
+Is individual assigned to teach a course within a term : F_FACULTY_SCHEDULED_IND({pidm},{term})
+
+F_CONCAT_SIRDPCL({pidm},{term}) : concatenate all of the fields for a record that is on SIAINST form ("Faculty College and Department" block); effective term, college, department –> 200610{US{NUR{{{
+
+F_SPLIT_FIELDS : parses a string that has been generated by a "F_CONCAT_*" function; must have '{' at end of string for function to work correctly; "{" is the delimiter that the function uses; it's hardcoded within the source code
+  
+F_SPLIT_FIELDS('TEST1{TEST2{TEST3{',2) - TEST2
+ 
+F_SPLIT_FIELDS(F_CONCAT_SIRDPCL({pidm},{term}),1) - effective term
+
+
+F_INSTRUCTOR_FNC({term},{crn},{'NAME','DEPT','COLL'}) : depending on value for 3rd parameter, retrieves name (or department or college) of person who is teaching the input course
+
+SSKSELS.F_SECTION_INSTRUCTOR({crn},{term},'Y',NULL) : retrieves the pidm of the person who is teaching the input course; last 2 parameters (as they are listed here) retrieves the primary instructor for the course
+ 
+F_GET_INSTR_SPRIDEN_ROWID({crn},{term},'Y',{which non-primary instructor}) : retrieves the rowid of the SPRIDEN record that corresponds to the person who is teaching the input course; last 2 parameters (as they are listed here) retrieves the primary instructor for the course; if third parameter is NULL, then fourth parameter can be used to retrieve the first, second, third, etc. non-primary instructor for the course
+
+
+E-mail Functions :
+
+F_GET_EMAIL_ROWID({pidm},NULL,'A',NULL) : using these parameters will retrieve an active & preferred e-mail address
+
+SELECT * FROM GOREMAL WHERE GOREMAL.ROWID (+) = F_GET_EMAIL_ROWID({pidm},NULL,'A',NULL);
+
+
+GB_EMAIL.F_EXISTS({pidm},{e-mail type},{e-mail address}) : does individual has a specified e-mail address within Banner; e-mail address is not case sensitive
+
+
+GPA Functions (Banner forms SHATERM & SHAINST) :
+  
+F_GET_SHRTTRM_ROWID : can be used to retrieve entire SHRTTRM record
+
+F_CONCAT_TERM_GPA({pidm},{term},{level; 'CR'},{GPA type - I, T, O) : concatenates all of the term GPA fields for a student (hours attempted, hours earned, GPA hours, quality points, GPA for the term, and hours passed) -> 17{17{17{61{3.58{17{
+  
+F_CONCAT_AS_OF_CUM_GPA({pidm},{term},{level; 'CR'},{GPA type - I, T, O) : concatenates all of the cumulative GPA (as of the input term) fields for a student (hours attempted, hours earned, GPA hours, quality points, cumulative GPA, and hours passed) -> 17{17{17{61{3.58{17{
+
+Use F_SPLIT_FIELDS function to parse
+ 
+F_CUM_TGPA_FNC({pidm},{term},{level; 'CR'},NULL,{GPA type - I, T, O),'HERN') : displays cumulative (as of the input term) hours earned for a student
+
+F_TGPA_FNC({pidm},{term},{level; 'CR'},{GPA type - I, T, O),{hours earned - 'HERN'; hours attempted - 'HATT'}) : displays selected field for the input student and term
+
+SHKSELS.F_SHRLGPA_VALUE({pidm},{level},{'GPA' or 'QP' or NULL},{GPA type - I, T, O},
+{'V' - value of 3rd parameter; quality points if NULL else hours attempted - 'HA', GPA hours – 'H', etc},
+{campus; NULL},{term; NULL})
+
+SHKSELS.F_SHRLGPA_VALUE({pidm},'CR','GPA','I','V',NULL,NULL) - GPA
+
+SHKSELS.F_SHRLGPA_VALUE({pidm},'CR','QP','I','V',NULL,NULL) - Quality Points
+
+SHKSELS.F_SHRLGPA_VALUE({pidm},'CR',NULL,'I','HA',NULL,NULL) - Hours Attempted
+
+SHKSELS.F_SHRLGPA_VALUE({pidm},'CR',NULL,'I','H',NULL,NULL) - GPA Hours
+
+
+F_ASTD_END_OF_TERM({pidm},{term}) : retrieves the "academic action" data for a student
+
+
+Functions For TSAAREV Form :
+ 
+TB_RECEIVABLE.F_MAX_TRAN_NUMBER({pidm})+1 : returns next transaction number
+  
+TB_COMMON.F_UPDATE_SOBSEQN_RECEIPT : API to retrieve the next receipt number to be used.  It will also update the receipt area of the SOBSEQN table.
+  
+TB_RECEIVABLE.F_SUM_BALANCE({pidm},NULL,{term}) : displays "Query Balance" field (sums "Balance" column).  This function has other options.  These can be displayed within TOAD.
+  
+F_TERM_CHARGES({pidm},{term}) : returns sum of charges ("Charge" column)
+  
+F_TERM_PAYMENTS({pidm},{term}) : returns sum of payments ("Payment" column)
+  
+F_SUM_AMOUNT_TERM({term},{detail code}) : returns a sum of the amounts that are associated with the detail code; depending on how the detail code is set up, it could be a sum of either the "Charge" or "Payment" column
+  
+F_SUM_BALANCE_TERM({term},{detail code}) : returns sum of the amounts (that are within the "Balance" column) which are associated with the detail code 
+
+F_AMOUNT_OWED({pidm}) : returns sum of balances ("Balance" column); can also use F_ACCOUNT_BALANCE({pidm})
+ 
+F_CAT_RANGE_FNC({pidm},{detail category code},{beginning term},{ending term}) : returns account balance for all CHARGES for a given detail code category per person per term range
+ 
+F_CAT_TERM_FNC({pidm},{detail category code},{term}) : returns account balance for all CHARGES for a given detail code category per person per term
+ 
+F_SUM_AMOUNT_BALANCE({detail category code},{detail code}) : returns total amount for category code and detail code
+
+F_SUM_BALANCE_BALANCE({detail category code},{detail code}) : returns total account balance for category code and detail code
+ 
+F_GET_DCAT_CODE({detail code}) : returns category code for detail code
+ 
+F_GET_AR_DESC({table name},{code to check within table},NULL) : displays description of input code; detail code table - TBBDETC; category code table - TTVDCAT
+
+
+Financial Aid Functions :
+  
+Next 2 functions retrieve data from Banner form RPAAWRD (RPRATRM table) :
+ 
+F_FA_AMT_TERM_FNC({pidm},{award year},{source indicator for fund - RTVFSRC table - 'F' for Federal},
+                  {type indicator for fund - RTVFTYP table - 'G' for Grant},
+                  {federal fund ID - RFRBASE table - can be used to select multiple funds -
+                   'STFD' for loans or can be left as NULL},{term}) : displays a balance of accepted financial aid for a term based on the fund source and fund type indicators.  Also, the federal ID of the fund can be used to further filter the funds that are selected
+   
+F_FA_AMT_YEAR_FNC({pidm},{award year},{source indicator for fund - RTVFSRC table - 'F' for Federal},
+                  {type indicator for fund - RTVFTYP table - 'G' for Grant},
+                  {federal fund ID - RFRBASE table - can be used to select multiple funds -
+                   'STFD' for loans or can be left as NULL},
+                  {'C' - retrieve amount for current award year or 
+                   NULL to retrieve amount for previous award year},
+                  {If previous parameter is NULL, 'Y' - to subtract amount for previous award year
+                   from amount for current award year or NULL to return amount for previous award year) : displays a balance of accepted financial aid for an award year based on the fund source and fund type indicators.  Also, the federal ID of the fund can be used to further filter the funds that are selected
+  
+ 
+F_CALC_TOTAL_BUDGET({pidm},{award year},{budget type - CAMP or PELL}) : displays total budget amount for the input student for the input award year
+
+F_CALC_TOTAL_OFFER({pidm},{award year}) : displays total award offered amount for the input student for the input award year
+ 
+F_SEM_CSED_FNC({pidm},{award year},{C - current award year data; NULL - previous award year data},NULL) : displays cost of education based upon 1) Pell budget or 2) institutional budget if 1) is not present
+ 
+F_PARENT_CONTRIB_FNC({pidm},{award year},{C - current award year data; NULL - previous award year data},NULL) : displays parent's contribution amount from financial aid application
+ 
+F_FAMILY_INCOME_FNC({pidm},{award year},{C - current award year data; P - previous award year data},NULL) : displays family income amount from financial aid application
+ 
+F_FINAID_APPLICANT_IND({pidm},{award year},{term - if not NULL, will be used instead of award year}) : determines (Y/N) if student is a financial aid applicant
+  
+
+Address Functions (Banner form SOADDRQ) :
+   
+F_GET_ADDRESS_ROWID({pidm},{address hierarchy},{active ind – NULL,'A','I'},{address date – (date),NULL,SYSDATE},
+			{address occurance},{sys ind},{address type})
+  
+SELECT * FROM SPRADDR WHERE SPRADDR.ROWID (+) = F_GET_ADDRESS_ROWID(...);
+  
+Checking address dates : {address date} is between (date 1) and (date 2); (date 1) : from date; if from date is empty, then to date; if to date is empty then {address date}; (date 2) : to date; if to date is empty then {address date}
+  
+address hierarchy - if defined, corresponds to the internal code of the ADDRESS "group" on the GTVSDAX form
+  
+address occurance - if NULL, set to 1; if address hierarchy is defined, corresponds to the sequence number of the ADDRESS "group" on the GTVSDAX form
+  
+F_GET_ADDRESS_ROWID({pidm},NULL,NULL,NULL,NULL,'GP';'AP','MA') – current mailing address
+  
+F_GET_ADDRESS_ROWID({pidm},'W2ADDR',NULL,NULL,NULL,'G';'S';'F';'AH';'R';'T';'P';'C',NULL) – current W2 address
+  
+F_GET_ADDRESS_ROWID({pidm},'W2ADDR',NULL,NULL,1,'G';'S';'F';'AH';'R';'T';'P';'C',NULL) – current W2 address
+  
+F_GET_ADDRESS_ROWID({pidm},'W2ADDR',NULL,NULL,2,'G';'S';'F';'AH';'R';'T';'P';'C',NULL) – current mailing address
+  
+Can also use F_GET_ADDRESS_FNC
+
+
+GB_ADDRESS.F_EXISTS({pidm},{address type to check for}) : does individual have an address with the specified type within Banner
+
+
+GB_ADDRESS.F_EXISTS_ACTIVE({pidm},
+                           {address type to check for - can be NULL},
+                           {from date - can be NULL = "beginning of time"},
+                           {to date - can be NULL = "end of time"}) : does individual have an active address
+                                                                      with the specified type within Banner
+
+
+GB_COMMON.F_GET_NEXT_ADDR_SEQNO({pidm},{address type}) : displays next available sequence number for the
+                                                         input address type
+ 
+ 
+F_LOST_AL_IND({pidm}) : displays Y if person does not have an active address
+ 
+
+Telephone Functions (Banner form SPATELE) :
+
+F_GET_ADDRESS_TELEPHONE_ROWID({pidm},{address hierarchy},{active ind – NULL,'A','I'},
+			{address date – (date),NULL,SYSDATE},{address occurance},{sys ind},{address type})
+  
+SELECT * FROM SPRTELE WHERE SPRTELE.ROWID (+) = F_GET_ADDRESS_TELEPHONE_ROWID(...);
+  
+Checking address dates : {address date} is between (date 1) and (date 2); (date 1) : from date; if from date is empty, then to date; if to date is empty then {address date}; (date 2) : to date; if to date is empty then {address date}
+  
+address hierarchy - if defined, corresponds to the internal code of the ADDRESS "group" on the GTVSDAX form
+  
+address occurance - if NULL, set to 1; if address hierarchy is defined, corresponds to the sequence number of the ADDRESS "group" on the GTVSDAX form
+
+F_GET_ADDRESS_TELEPHONE_ROWID({pidm},NULL,NULL,NULL,NULL,'GP';'AP','MA') – current telephone number that is "linked" to mailing address
+  
+F_GET_ADDRESS_TELEPHONE_ROWID({pidm},'W2ADDR',NULL,NULL,NULL,'S';'F';'AH';'R';'T';'P';'C',NULL) – current telephone number that is "linked" to W2 address
+  
+F_GET_ADDRESS_TELEPHONE_ROWID({pidm},'W2ADDR',NULL,NULL,1,'S';'F';'AH';'R';'T';'P';'C',NULL) – current telephone number that is "linked" to W2 address
+  
+F_GET_ADDRESS_TELEPHONE_ROWID({pidm},'W2ADDR',NULL,NULL,2,'S';'F';'AH';'R';'T';'P';'C',NULL) – current telephone number that is "linked" to mailing address
+
+
+GB_COMMON.F_GET_NEXT_TELE_SEQNO({pidm}) : displays next available telephone sequence number
+
+
+GB_TELEPHONE.F_EXISTS({pidm},{telephone type to check for},NULL) : does individual have a telephone number with the specified type within Banner
+
+
+Function to retrieve specific address/telephone information for an individual :
+
+GOKSELS.F_ADDRESS_TELEPHONE_VALUE({pidm},{address hierarchy},{active ind – NULL,'A','I'},
+				{address date – (date),NULL,SYSDATE},{address occurance},
+				{sys ind},{address type},
+				{address column - 'S1', 'CITY', etc; can be NULL if retrieving telephone data},
+				{retrieve telephone 'T' or address 'A' data},
+				{telephone column - 'PA', 'TC', etc; can be NULL if retrieving address data})
+
+Checking address dates : {address date} is between (date 1) and (date 2); (date 1) : from date; if from date is empty, then to date; if to date is empty then {address date}; (date 2) : to date; if to date is empty then {address date}
+  
+address hierarchy - if defined, corresponds to the internal code of the ADDRESS "group" on the GTVSDAX form
+  
+address occurance - if NULL, set to 1; if address hierarchy is defined, corresponds to the sequence number of the ADDRESS "group" on the GTVSDAX form
+
+sys ind - if address hierarchy is specified, then must be a (any) character; otherwise can be NULL
+
+address type - can be NULL if address hierarchy is specified
+
+
+Advisor Functions (Banner form SGAADVR) :
+ 
+F_FACULTY_ADVISING_IND({pidm},{term}) : is/was individual an advisor for the input term?
+  
+SOKODSF.F_GET_SGRADVR_ROWID({pidm},{term}) : retrieves student's advisor record where the effective term is less than or equal to the term parameter; retrieves last record that had an advisor assignment.  If a student does not attend for 2 consecutive terms, their advisor assignment is "ended" by inserting an empty record into this table.  So this function would retrieve the record that had an advisor assignment rather than returning an empty record.
+
+SELECT * FROM SGRADVR WHERE SGRADVR.ROWID (+) = SOKODSF.F_GET_SGRADVR_ROWID({pidm},{term});
+  
+F_CONCAT_SGRADVR({pidm},{term}) : concatenates up to two sets of advisor data; primary first then non-primary; date returned : effective term, last name, first name, surname, advisor code, primary indicator
+ 
+Use F_SPLIT_FIELDS function to parse
+
+
+Course Functions :
+ 
+SOKODSF.F_GET_COURSE_DATES({pidm},{term},{crn},{part of term ind; NULL},{which date}) : retrieve beginning/ending dates for a course that student has taken; which date - 'S' - start; 'E' - ending
+  
+SOKODSF.F_GET_CRSE_LONG_TITLE({term},{crn}) : retrieve "long title" of course if one is available (SSASYLB form)
+  
+F_CALC_MEET_DAYS({term},{crn},{part of term code}) : retrieve the number of days a course meets
+ 
+F_GET_SSRMEET_ROWID({term},{crn},{which record}) : retrieves the rowid of the SSRMEET record that corresponds to the input CRN and term; third parameter is used to retrieve specific meeting record : 1, 2, 3, etc.
+   
+F_GET_SSBSECT_ROW({term},{crn}) : retrieves the SSBSECT record that corresponds to the input CRN and term; can use in a PL/SQL program
+  
+
+Functions For Payroll/HR Module :
+  
+F_ALL_JOB_ROWID({pidm},{position number},{suffix},{effective date; for current position, use SYSDATE}) : retrieve specified record from NBRJOBS
+  
+F_PRIMARY_JOB_ROWID({pidm},{effective date; for current position, use SYSDATE},{'NBRBJOB';'NBRJOBS'}) : retrieve specified record based upon the input table name (third parameter)
+   
+F_CALC_LEAVE_BAL({pidm},{date to compute balance for; for current balance, use SYSDATE}) : display sum of employee's leave balance (based upon input date)
+
+F_CURR_EMPL_IND({begin date},{end date; if NULL, defaults to 12/31/2099},{check date}) : displays 'Y' if "check date" is between "begin date" and "end date"; otherwise 'N' is displayed
+  
+F_TOTAL_HOUR_EARNING_YEAR({pidm},{calendar year},{hours - PERJTOT_HRS; earnings - PERJTOT_GRS},{COA - H}) : displays total hours or earnings for an employee for a given year
+ 
+F_YEARLY_DEDUCTION_TOTAL({pidm},{benefit/deduction code},{employee amount - EMPL; employer amount - EMPR; total gross conpensation toward which deduction is applicable - APPL},{calendar year}) : displays yearly deduction total for an employee for a given year
+ 
+F_QUATERLY_DEDUCTION_TOTAL({pidm},{benefit/deduction code},{employee amount - EMPL; employer amount - EMPR; total gross conpensation toward which deduction is applicable - APPL},{quarter},{calendar year}) : displays quarterly deduction total for an employee for a given year
+ 
+F_REVIEW_ROWID({pidm},{which record}) : retrieves employee's review (EPMS) record; entries are sorted by activity date
+ 
+F_NUMBER_DEGREES({pidm},{effective date - SYSDATE}) : displays number of degrees for an employee
+
+
+Admissions Functions :
+
+F_CONCAT_SARAPPD({pidm},{term},{application #}) : concatenate up to five of an admissions applicants most recent decisions (code & date)
+  
+Use F_SPLIT_FIELDS function to parse
+ 
+ 
+F_LEVEL_APPL_FNC({pidm},{term},'CR') : determines (Y/N) if individual is an admissions applicant
+ 
+F_LEVEL_ADMITTED_FNC({pidm},{term},'CR') : determines (Y/N) if individual is an admitted (accepted) admissions applicant
+
+
+Miscellaneous Functions :
+
+GOKSELS.F_NAME_BIO_VALUE({pidm},{bio/demo item}) : retrieve name fields, age, Banner ID, etc
+
+
+F_CALCULATE_AGE({ending date} or NULL,{birth date},{deceased date} or NULL)
+
+
+F_GET_DOB2({pidm}) : retrieve date of birth
+
+
+F_CLASS_CALC_FNC({pidm},{level; 'CR'},(NULL or term)) : determine if student is first year or second year
+
+
+GB_THIRD_PARTY_ACCESS.F_EXTERNAL_PIN({pidm}) : displays person’s PIN value 
+
+
+GB_STVTERM.F_EXISTS({term to check for}) : determine if term exists within Banner
+
+
+F_GET_SPRHOLD_ROWID({pidm},NULL,{seq # of hold}) : retrieve specified hold for a student (Banner form SOAHOLD); check source code to see how system date is used to retrieve a student's hold
+
+SELECT * FROM SPRHOLD WHERE SPRHOLD.ROWID (+) = F_GET_SPRHOLD_ROWID({pidm},NULL,{seq # of hold});
+
+
+F_TEST_SCORE_FNC({pidm},{test code},{which one},{convert test}) : retrieves student's test score from Banner (form SOATEST); which one - 'FIRST','LAST','LOW','HIGH' - used with test code; 'COMBINED' - sums highest SAT math & highest SAT verbal test scores - test code can be NULL; 'COMPOSITE' - retrieves highest ACT Composite test score - test code can be NULL; convert test - 'Y' - enables use of entries that are on GTVSDAX form - can use 'SATM' instead of 'S02' for test code
+
+
+SOKODSF.F_GET_CURR_VETC_CODE({pidm}) : retrieve most recent veteran type for student (SGASTDN form - Veteran tab)
+
+
+F_CONCAT_SORPCOL({pidm}) : concatenates person's prior institution information (SOAPCOL form); can retrieve data for up to 3 prior institutions (based upon the transcript received date) ->
+
+009226{03-APR-1989{19-SEP-1989{P17{{13-AUG-1984{30-NOV-1988{{{{{{{{{{{{{{{{{{
+
+Use F_SPLIT_FIELDS function to parse
+
+
+SOKODSF.F_CALC_TRANSFER_CREDITS({pidm},{school code}) : retrieve number of credits that student transferred from another institution (SHATRNS form); also uses SHRTRAM table
+
+
+F_CHECKSDAXRULE({internal code},{group}) : returns corresponding "External Code" value that is on the GTVSDAX form; can also use F_GET_SDAX and GOKEACC.F_GETGTVSDAXEXTCODE
+
+
+F_CLOB_TO_TEXT(sprcmnt.rowid,{number of characters to extract from comment field}) : extract information from the "Narrative Comments" field that is on the SPACMNT form
+
+
+F_GET_SLBRDEF_DESC({building},{room},{effective term}) : displays room description
