@@ -45,6 +45,11 @@ WHERE TYPE = 'FUNCTION'
 AND NAME LIKE '%EMA%'
 ORDER BY NAME, LINE
 
+-- get source code behind views
+SELECT *
+FROM all_views
+WHERE view_name = 'SPVCURR'
+
 
 Displaying A Person's Name :
 
